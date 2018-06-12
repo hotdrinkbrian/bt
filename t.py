@@ -1,4 +1,4 @@
 import ROOT
 import numpy
 
-a = []
+a = [1,3]

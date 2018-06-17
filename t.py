@@ -16,6 +16,7 @@ from collections import OrderedDict
 from keras.models import Sequential
 from keras.layers import Dense
 #====settings==================================================================================================
+test = 0
 train_test_ratio = 0.5
 bkg_multiple = 10
 bkg_test_multiple = 100
@@ -25,8 +26,10 @@ attr = ['pt','cm','phf','chf','muf','nhf','nm','elf','chm','dR_q1','dR_q2','dR_q
 #====settings==================================================================================================
 
 path = '/home/brian/datas/v4/'
-bkg_name = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_skimed.root'
-#bkg_name = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-0_TuneCUETP8M1_13TeV-powheg-pythia8_1j_skimed.root'
+if test == 0:
+    bkg_name = 'QCD_HT200to300_TuneCUETP8M1_13TeV-madgraphMLM-pythia8_skimed.root'
+elif test == 1:
+    bkg_name = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-0_TuneCUETP8M1_13TeV-powheg-pythia8_1j_skimed.root'
 sgn_name = 'VBFH_HToSSTobbbb_MH-125_MS-40_ctauS-500_TuneCUETP8M1_13TeV-powheg-pythia8_skimed.root'
 
 bkg_name = path + bkg_name 
@@ -135,10 +138,10 @@ def dict2str(dct):
 
 
 # take in all the attributes info
-#X_train, y_train = df_train[:,(1,2,3,4,5,6,7,8)], df_train[:,len(attr)] 
-#X_test, y_test   = df_test[:,(1,2,3,4,5,6,7,8)] , df_test[:,len(attr)] 
-X_train, y_train = df_train[:,(3,5)], df_train[:,len(attr)]
-X_test, y_test = df_test[:,(3,5)], df_test[:,len(attr)]
+X_train, y_train = df_train[:,(1,2,3,4,5,6,7,8)], df_train[:,len(attr)] 
+X_test, y_test   = df_test[:,(1,2,3,4,5,6,7,8)] , df_test[:,len(attr)] 
+#X_train, y_train = df_train[:,(3,5)], df_train[:,len(attr)]
+#X_test, y_test = df_test[:,(3,5)], df_test[:,len(attr)]
 
 
 from keras import utils
@@ -146,7 +149,7 @@ Y_train = utils.to_categorical(y_train)
 
 
 model = Sequential([
-    Dense(30, activation='relu', input_shape=(2,)),
+    Dense(30, activation='relu', input_shape=(8,)),
     Dense(30, activation='relu'),
     Dense(30, activation='relu'),
     Dense(2, activation='softmax')
@@ -163,7 +166,7 @@ model.compile(
 #labels = np.random.randint(2, size=(100,2))
 model.summary()
 
-model.fit(
+history = model.fit(
 
     X_train, #data,
     Y_train, #labels,
@@ -176,10 +179,28 @@ model.fit(
 
 
 y_pred = model.predict_proba(X_test)
+
 Y_test = utils.to_categorical(y_test)
 
 
 from sklearn import metrics
 auc = metrics.roc_auc_score(Y_test, y_pred)
+
+y_pred_proba = model.predict_proba(X_test)[:,1]
+fpr, tpr, thresholds = metrics.roc_curve(y_test, y_pred_proba)
+
 print 'AUC:'
 print auc
+
+fig = plt.figure()
+plt.plot(fpr,tpr,label="bdt, auc="+str(auc))
+plt.legend(loc=4)
+plt.plot([0, 1], [0, 1], color='navy', lw=1, linestyle='--')
+plt.grid(True)
+plt.title('ROC')
+plt.ylabel('false pos rate')
+plt.xlabel('true pos rate')
+fig.savefig('./roc/roc2.pdf') #"roc.pdf", bbox_inches='tight'
+
+print 'fit log:'
+print history
